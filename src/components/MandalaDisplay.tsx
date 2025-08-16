@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import Sketch from 'react-p5';
 import p5Types from 'p5';
 import { type Memory } from '../types';
@@ -21,7 +21,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
 
   const mouseClicked = (p5: p5Types) => {
     const mouseDist = p5.dist(p5.mouseX, p5.mouseY, p5.width / 2, p5.height / 2);
-    const clickedIndex = memories.findIndex((memory, index) => {
+    const clickedIndex = memories.findIndex((_memory, index) => {
       const radius = 60 + index * 35;
       return mouseDist > radius - 20 && mouseDist < radius + 20;
     });
@@ -153,7 +153,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     drawFloatingElements(p5, baseRadius, hue, sat, bright, index, isHovered);
   };
 
-  const drawComplexPattern = (p5: p5Types, pattern: string, radius: number, index: number, layer: number) => {
+  const drawComplexPattern = (p5: p5Types, pattern: string, radius: number, index: number, _layer: number) => {
     const rotation = timeRef.current * 10 + index * 45;
     p5.push();
     p5.rotate(rotation);

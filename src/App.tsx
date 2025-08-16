@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import MandalaDisplay from './components/MandalaDisplay.tsx';
 import MemoryForm from './components/MemoryForm.tsx';
 import MemoryDetail from './components/MemoryDetail.tsx';

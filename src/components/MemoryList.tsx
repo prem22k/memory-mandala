@@ -9,7 +9,6 @@ interface MemoryListProps {
 
 const MemoryList: React.FC<MemoryListProps> = ({ memories, onMemorySelect, selectedMemory }) => {
   const parseMemoryData = (description: string) => {
-    const lines = description.split(' ');
     let title = '';
     let date = '';
     let desc = description;
