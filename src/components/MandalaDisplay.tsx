@@ -168,7 +168,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       p5.strokeWeight(isHovered ? (isMobile ? 2 - layer * 0.2 : 3 - layer * 0.3) : (isMobile ? 1.5 - layer * 0.15 : 2 - layer * 0.2));
       p5.noFill();
       
-      drawComplexPattern(p5, memory.art_instructions.pattern, currentRadius, index, layer);
+              drawComplexPattern(p5, memory.art_instructions.pattern, currentRadius, index);
     }
     
     // Reset shadow
@@ -180,7 +180,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     }
   };
 
-  const drawComplexPattern = (p5: p5Types, pattern: string, radius: number, index: number, _layer: number) => {
+  const drawComplexPattern = (p5: p5Types, pattern: string, radius: number, index: number) => {
     const rotation = timeRef.current * (isMobile ? 5 : 10) + index * 45;
     p5.push();
     p5.rotate(rotation);
