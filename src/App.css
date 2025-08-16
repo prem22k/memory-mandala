@@ -7,15 +7,16 @@
 
 .App-header {
   text-align: center;
-  padding: 2rem 0;
+  padding: 1.5rem 0;
   background: transparent;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .App-header h1 {
   font-family: 'Playfair Display', serif;
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
   margin: 0;
   color: var(--primary-text);
   text-shadow: 0 0 20px var(--shadow-color);
@@ -34,6 +35,7 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
 }
 
 .sign-out-button:hover {
@@ -46,8 +48,8 @@
   display: grid;
   grid-template-columns: 6fr 4fr;
   flex-grow: 1;
-  gap: 2rem;
-  padding: 0 2rem 2rem;
+  gap: 1.5rem;
+  padding: 0 1.5rem 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -58,14 +60,14 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  min-height: 600px;
+  min-height: 500px;
 }
 
 .right-panel {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  max-height: 80vh;
+  gap: 1.25rem;
+  max-height: 75vh;
   overflow-y: auto;
 }
 
@@ -73,7 +75,7 @@
 .memory-list-container,
 .memory-detail-container {
   background: var(--container-bg);
-  padding: 1.5rem;
+  padding: 1.25rem;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -121,6 +123,9 @@ textarea, input[type="text"], input[type="date"] {
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
   resize: vertical;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 textarea:focus, input[type="text"]:focus, input[type="date"]:focus {
@@ -147,6 +152,7 @@ textarea {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .grow-mandala-button:hover {
@@ -184,7 +190,7 @@ textarea {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 300px;
+  max-height: 250px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -200,6 +206,7 @@ textarea {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .memory-card:hover {
@@ -288,6 +295,8 @@ textarea {
   font-weight: 500;
   transition: all 0.2s ease;
   margin-top: 1rem;
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .delete-button:hover {
@@ -308,11 +317,11 @@ textarea {
   font-size: 0.9rem;
 }
 
-/* Responsive Design */
+/* Enhanced Responsive Design */
 @media (max-width: 1024px) {
   .App-main {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1.25rem;
     padding: 0 1rem 1rem;
   }
   
@@ -322,22 +331,142 @@ textarea {
   
   .right-panel {
     max-height: none;
+    order: -1;
+  }
+  
+  .App-header {
+    padding: 1rem 0;
+    margin-bottom: 1rem;
   }
 }
 
 @media (max-width: 768px) {
   .App-header h1 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   
   .App-main {
-    padding: 0 0.5rem 1rem;
+    padding: 0 0.75rem 1rem;
+    gap: 1rem;
   }
   
   .memory-form-container,
   .memory-list-container,
   .memory-detail-container {
     padding: 1rem;
+  }
+  
+  .left-panel {
+    min-height: 350px;
+  }
+  
+  .right-panel {
+    gap: 1rem;
+  }
+  
+  .memory-list-container ul {
+    max-height: 200px;
+  }
+  
+  .sign-out-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  h2 {
+    font-size: 1.1rem;
+  }
+  
+  .grow-mandala-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+  
+  textarea, input[type="text"], input[type="date"] {
+    padding: 0.625rem;
+    font-size: 0.9rem;
+  }
+  
+  .memory-card {
+    padding: 0.875rem;
+  }
+  
+  .memory-card h3 {
+    font-size: 0.95rem;
+  }
+  
+  .memory-card .memory-preview {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .App-header {
+    padding: 0.75rem 0;
+  }
+  
+  .App-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .App-main {
+    padding: 0 0.5rem 0.75rem;
+  }
+  
+  .memory-form-container,
+  .memory-list-container,
+  .memory-detail-container {
+    padding: 0.875rem;
+  }
+  
+  .left-panel {
+    min-height: 300px;
+  }
+  
+  .memory-list-container ul {
+    max-height: 180px;
+  }
+  
+  .grow-mandala-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .memory-card:hover {
+    transform: none;
+  }
+  
+  .grow-mandala-button:hover {
+    transform: none;
+  }
+  
+  .delete-button:hover {
+    transform: none;
+  }
+  
+  .sign-out-button:hover {
+    transform: none;
+  }
+  
+  /* Add active states for touch devices */
+  .memory-card:active {
+    transform: scale(0.98);
+    background: rgba(48, 168, 240, 0.05);
+  }
+  
+  .grow-mandala-button:active {
+    transform: scale(0.98);
+  }
+  
+  .delete-button:active {
+    transform: scale(0.98);
+  }
+  
+  .sign-out-button:active {
+    transform: scale(0.98);
   }
 }
 
@@ -348,14 +477,14 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 2rem;
+  padding: 1rem;
   background: linear-gradient(135deg, var(--dark-bg) 0%, #161b22 100%);
 }
 
 .login-container h2 {
   font-family: 'Playfair Display', serif;
-  font-size: 2rem;
-  margin-bottom: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin-bottom: 1.5rem;
   color: var(--primary-text);
   text-align: center;
 }
@@ -370,6 +499,10 @@ textarea {
   background: var(--container-bg);
   color: var(--primary-text);
   font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .login-container input:focus {
@@ -389,6 +522,8 @@ textarea {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .login-container button:first-of-type {
@@ -411,4 +546,23 @@ textarea {
   margin-top: 1rem;
   text-align: center;
   font-size: 0.9rem;
+}
+
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
 }
