@@ -18,17 +18,34 @@ const generatePrompt = async (prompt: string, isJson = false) => {
 
 export const getEnhancedMemory = async (description: string) => {
   const poeticPrompt = `
-    You are a poet, skilled in capturing the essence of a memory in a short, beautiful, and evocative narrative.
+    You are a master poet, skilled in capturing the essence of love and memories in beautiful, evocative verse.
     A user has provided this memory: "${description}"
-    Transform this memory into a poetic narrative of no more than 4 lines.
+    
+    Transform this memory into a short, romantic, and deeply emotional poetic narrative of 3-4 lines.
+    The poem should be beautiful, heartfelt, and capture the magic of the moment.
+    Make it feel like a love letter or a romantic verse that would be meaningful to a couple.
   `;
 
   const artPrompt = `
-    You are an art director, skilled in translating emotions and concepts into visual instructions.
+    You are an expert art director and color theorist, specializing in creating stunning visual designs for mandala art.
     A user has provided this memory: "${description}"
-    Based on the feeling and content of this memory, provide ONLY a JSON object with two keys: "color" (a hex code representing the dominant emotion) and "pattern" (a simple geometric shape like "circle", "square", "triangle", "line", or "arc").
+    
+    Based on the emotional content, mood, and feeling of this memory, create a sophisticated color palette and pattern design.
+    
+    Provide ONLY a JSON object with these keys:
+    - "color": A beautiful, vibrant hex color that represents the dominant emotion (choose from: deep purples, rich blues, warm golds, soft pinks, emerald greens, or vibrant oranges)
+    - "pattern": A complex geometric pattern type (choose from: "circle", "square", "triangle", "line", "arc")
+    
+    Consider the emotional weight:
+    - Romantic/loving memories: soft pinks, purples, or warm golds
+    - Joyful/happy memories: vibrant oranges, yellows, or bright blues
+    - Peaceful/calm memories: soft blues, greens, or lavender
+    - Passionate/intense memories: deep reds, purples, or electric blues
+    - Nostalgic memories: warm ambers, soft oranges, or muted golds
+    
+    Example output: { "color": "#E91E63", "pattern": "circle" }
+    
     Do not include any other text or explanation.
-    Example output: { "color": "#FFD700", "pattern": "circle" }
   `;
 
   const poetic_narrative = await generatePrompt(poeticPrompt);
