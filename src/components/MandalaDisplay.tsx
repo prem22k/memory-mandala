@@ -15,6 +15,8 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   const [isMobile, setIsMobile] = useState(false);
   const [canvasSize, setCanvasSize] = useState(600);
   const [mode, setMode] = useState<'canvas' | 'svg' | 'webgl'>('canvas');
+  const [perfMode, setPerfMode] = useState<boolean>(false);
+  const [showPoem, setShowPoem] = useState<boolean>(false);
   const p5Ref = useRef<p5Types | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -24,6 +26,10 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       setIsMobile(mobile);
       setCanvasSize(mobile ? 350 : 600);
     };
+
+    // Respect reduced motion
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) setPerfMode(true);
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -47,6 +53,8 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       p5.colorMode(p5.HSB, 360, 100, 100, 1);
       p5.rectMode(p5.CENTER);
     }
+    // Lower framerate in perf mode
+    p5.frameRate(perfMode ? 30 : 60);
   };
 
   const mouseClicked = (p5: p5Types) => {
@@ -67,8 +75,8 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   const draw = (p5: p5Types) => {
     if (mode === 'svg') return; // Skip drawing when in SVG mode
 
-    const animationSpeed = isMobile ? 0.01 : 0.02;
-    const timeSpeed = isMobile ? 0.01 : 0.015;
+    const animationSpeed = perfMode ? (isMobile ? 0.005 : 0.01) : (isMobile ? 0.01 : 0.02);
+    const timeSpeed = perfMode ? (isMobile ? 0.005 : 0.01) : (isMobile ? 0.01 : 0.015);
     timeRef.current += animationSpeed;
     animationRef.current += timeSpeed;
 
@@ -77,19 +85,20 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       return;
     }
 
-    if (isMobile) {
+    // Background
+    if (isMobile || perfMode) {
       p5.background(0);
     } else {
       p5.background(0);
-      for (let i = 0; i < p5.width; i += 2) {
-        for (let j = 0; j < p5.height; j += 2) {
+      for (let i = 0; i < p5.width; i += 4) { // sparser in normal mode
+        for (let j = 0; j < p5.height; j += 4) {
           const dist = p5.dist(i, j, p5.width / 2, p5.height / 2);
           const maxDist = p5.width / 2;
           const normalizedDist = p5.map(dist, 0, maxDist, 0, 1);
           const hue = 220 + normalizedDist * 40;
           const sat = 30 + normalizedDist * 20;
           const bright = 5 + normalizedDist * 15;
-          const alpha = p5.map(normalizedDist, 0, 1, 0.3, 0.1);
+          const alpha = p5.map(normalizedDist, 0, 1, 0.2, 0.08);
           p5.set(i, j, p5.color(hue, sat, bright, alpha));
         }
       }
@@ -98,7 +107,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     
     p5.translate(p5.width / 2, p5.height / 2);
 
-    if (!isMobile) {
+    if (!isMobile && !perfMode) {
       drawAmbientParticles(p5);
     }
     
@@ -116,15 +125,18 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     const gl = (p5 as any);
     gl.clear(0);
     gl.background(0);
-    gl.orbitControl?.(2, 2); // gentle orbit
-    gl.rotateX(timeRef.current * 5);
-    gl.rotateZ(timeRef.current * 3);
+    if (!perfMode) gl.orbitControl?.(2, 2);
+    if (!perfMode) {
+      gl.rotateX(timeRef.current * 5);
+      gl.rotateZ(timeRef.current * 3);
+    }
 
     memories.forEach((memory, index) => {
       const params = memory.art_instructions || ({} as Memory['art_instructions']);
       const color = params.color || '#30a8f0';
       const seed = params.seed ?? 1337 + index * 101;
-      const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+      const symmetryRaw = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+      const symmetry = perfMode ? Math.min(symmetryRaw, 10) : symmetryRaw;
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
 
       seededRandom(p5, seed);
@@ -135,14 +147,15 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
         gl.rotateZ(a);
         gl.noFill();
         gl.stroke(color);
-        gl.strokeWeight(1.2);
-        // 3D ring segments
-        for (let r = baseRadius * 0.6; r < baseRadius * 1.1; r += 8) {
+        gl.strokeWeight(perfMode ? 1 : 1.2);
+        const rStep = perfMode ? 12 : 8;
+        const angStep = perfMode ? 30 : 15;
+        for (let r = baseRadius * 0.6; r < baseRadius * 1.1; r += rStep) {
           gl.beginShape();
-          for (let ang = 0; ang <= 360; ang += 15) {
+          for (let ang = 0; ang <= 360; ang += angStep) {
             const x = r * gl.cos(ang);
             const y = r * gl.sin(ang);
-            const z = gl.sin(timeRef.current * 40 + ang * 0.5 + r * 0.1) * 6; // gentle wave height
+            const z = (perfMode ? 0 : gl.sin(timeRef.current * 40 + ang * 0.5 + r * 0.1) * 6);
             gl.vertex(x, y, z);
           }
           gl.endShape();
@@ -157,8 +170,8 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     p5.stroke(210, 40, 80, 0.4);
     p5.strokeWeight(1);
     p5.noFill();
-    for (let i = 0; i < 20; i++) {
-      const angle = timeRef.current * 30 + i * 18;
+    for (let i = 0; i < 16; i++) {
+      const angle = timeRef.current * 30 + i * 22.5;
       const radius = 200 + p5.sin(timeRef.current * 3 + i) * 20;
       const x = radius * p5.cos(angle);
       const y = radius * p5.sin(angle);
@@ -169,22 +182,12 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
 
   const drawCentralCore = (p5: p5Types) => {
     const coreSize = isMobile ? 25 : 40;
-    p5.drawingContext.shadowBlur = isMobile ? 15 : 30;
+    p5.drawingContext.shadowBlur = perfMode ? 0 : (isMobile ? 15 : 30);
     p5.drawingContext.shadowColor = p5.color(210, 60, 80);
     p5.fill(210, 60, 80, 0.3);
     p5.stroke(210, 80, 90, 0.8);
     p5.strokeWeight(isMobile ? 1 : 2);
     p5.circle(0, 0, coreSize);
-    p5.stroke(210, 100, 100, 0.6);
-    p5.strokeWeight(1);
-    p5.noFill();
-    const patternRadius = isMobile ? 10 : 15;
-    for (let i = 0; i < 360; i += 30) {
-      const x = patternRadius * p5.cos(i);
-      const y = patternRadius * p5.sin(i);
-      p5.line(0, 0, x, y);
-    }
-    p5.drawingContext.shadowBlur = 0;
   };
 
   const applyStrokeStyle = (p5: p5Types, style?: string) => {
@@ -205,16 +208,19 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     const sat = p5.saturation(color);
     const bright = p5.brightness(color);
 
-    const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
-    const petals = Math.max(3, Math.min(params.petals ?? 12, 60));
+    const symmetryRaw = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+    const petalsRaw = Math.max(3, Math.min(params.petals ?? 12, 60));
+    const symmetry = perfMode ? Math.min(symmetryRaw, 10) : symmetryRaw;
+    const petals = perfMode ? Math.min(petalsRaw, 12) : petalsRaw;
     const strokeStyle = params.strokeStyle || 'solid';
     const seed = params.seed ?? 1337 + index * 101;
     const energy = params.energy || 'romantic';
 
     seededRandom(p5, seed);
 
-    const layers = isMobile ? 3 : 5;
-    const energyAmplitude = energy === 'calm' ? 0.06 : energy === 'energetic' ? 0.18 : 0.12;
+    const layers = perfMode ? (isMobile ? 1 : 2) : (isMobile ? 3 : 5);
+    const energyAmplitudeBase = energy === 'calm' ? 0.06 : energy === 'energetic' ? 0.18 : 0.12;
+    const energyAmplitude = perfMode ? energyAmplitudeBase * 0.5 : energyAmplitudeBase;
     const pulse = p5.sin(animationRef.current + index * 0.8) * (isMobile ? energyAmplitude * 0.6 : energyAmplitude) + 1;
 
     for (let layer = 0; layer < layers; layer++) {
@@ -222,11 +228,11 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const layerAlpha = isHovered ? 0.9 - layer * 0.15 : 0.7 - layer * 0.1;
       const currentRadius = layerRadius * pulse;
 
-      p5.drawingContext.shadowBlur = isHovered ? (isMobile ? 20 - layer * 3 : 35 - layer * 5) : (isMobile ? 8 - layer * 1 : 15 - layer * 2);
+      p5.drawingContext.shadowBlur = perfMode ? 0 : (isHovered ? (isMobile ? 20 - layer * 3 : 35 - layer * 5) : (isMobile ? 8 - layer * 1 : 15 - layer * 2));
       p5.drawingContext.shadowColor = p5.color(hue, sat, bright, isHovered ? 0.8 : 0.5);
 
       p5.stroke(hue, sat, bright, layerAlpha);
-      p5.strokeWeight(isHovered ? (isMobile ? 2 - layer * 0.2 : 3 - layer * 0.3) : (isMobile ? 1.5 - layer * 0.15 : 2 - layer * 0.2));
+      p5.strokeWeight(perfMode ? 1.5 : (isHovered ? (isMobile ? 2 - layer * 0.2 : 3 - layer * 0.3) : (isMobile ? 1.5 - layer * 0.15 : 2 - layer * 0.2)));
       applyStrokeStyle(p5, strokeStyle);
       p5.noFill();
 
@@ -236,7 +242,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     p5.drawingContext.setLineDash([]);
     p5.drawingContext.shadowBlur = 0;
 
-    if (!isMobile) {
+    if (!isMobile && !perfMode) {
       drawFloatingElements(p5, baseRadius, hue, sat, bright, index, isHovered);
     }
   };
@@ -259,7 +265,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
         case 'circle':
           for (let i = 0; i < petals; i++) {
             const ang = (i / petals) * 360;
-            const wobble = p5.sin(timeRef.current * 40 + i * 10 + index * 20) * (radius * 0.04);
+            const wobble = (perfMode ? 0 : p5.sin(timeRef.current * 40 + i * 10 + index * 20) * (radius * 0.04));
             const r = radius * 0.5 + wobble;
             const x = r * p5.cos(ang);
             const y = r * p5.sin(ang);
@@ -291,7 +297,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
           }
           break;
         case 'line':
-          for (let i = 0; i < 360; i += 12) {
+          for (let i = 0; i < 360; i += (perfMode ? 16 : 12)) {
             const spiral = radius * (0.25 + (i / 360) * 0.75);
             const x = spiral * p5.cos(i);
             const y = spiral * p5.sin(i);
@@ -354,8 +360,10 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const params = memory.art_instructions || ({} as Memory['art_instructions']);
       const color = params.color || '#30a8f0';
       const secondary = params.secondary_color || '#ffffff';
-      const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
-      const petals = Math.max(3, Math.min(params.petals ?? 12, 60));
+      const symmetryRaw = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+      const petalsRaw = Math.max(3, Math.min(params.petals ?? 12, 60));
+      const symmetry = perfMode ? Math.min(symmetryRaw, 10) : symmetryRaw;
+      const petals = perfMode ? Math.min(petalsRaw, 12) : petalsRaw;
       const seed = params.seed ?? 1337 + index * 101;
       const rnd = lcg(seed);
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
@@ -367,7 +375,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
         const petalChildren: ReactElement[] = [];
         for (let i = 0; i < petals; i++) {
           const ang = (i / petals) * 360;
-          const wobble = (Math.sin(i * 0.5) + rnd() * 0.2) * (baseRadius * 0.04);
+          const wobble = (perfMode ? 0 : (Math.sin(i * 0.5) + rnd() * 0.2) * (baseRadius * 0.04));
           const r = baseRadius * 0.5 + wobble;
           const x = r * Math.cos((ang * Math.PI) / 180);
           const y = r * Math.sin((ang * Math.PI) / 180);
@@ -489,12 +497,16 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   return (
     <div style={{ position: 'relative' }}>
       {/* Controls overlay */}
-      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', background: 'rgba(28,33,40,0.9)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
           <button onClick={() => setMode('canvas')} style={{ padding: '6px 10px', background: mode === 'canvas' ? 'var(--accent-color)' : 'transparent', color: mode === 'canvas' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>Canvas</button>
           <button onClick={() => setMode('svg')} style={{ padding: '6px 10px', background: mode === 'svg' ? 'var(--accent-color)' : 'transparent', color: mode === 'svg' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>SVG</button>
           <button onClick={() => setMode('webgl')} style={{ padding: '6px 10px', background: mode === 'webgl' ? 'var(--accent-color)' : 'transparent', color: mode === 'webgl' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>WebGL</button>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(28,33,40,0.9)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '4px 8px', color: 'var(--primary-text)' }}>
+          <input type="checkbox" checked={perfMode} onChange={(e) => setPerfMode(e.target.checked)} />
+          Performance
+        </label>
         {mode === 'canvas' && (
           <>
             <button onClick={handleExportPNG} className="sign-out-button" style={{ position: 'static' }}>Export PNG</button>
@@ -504,11 +516,21 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
         {mode === 'svg' && (
           <button onClick={handleExportSVG} className="sign-out-button" style={{ position: 'static' }}>Export SVG</button>
         )}
+        <button className="sign-out-button" style={{ position: 'static' }} onClick={() => setShowPoem((v) => !v)} disabled={!selectedMemory}>
+          {showPoem ? 'Hide Poem' : 'Show Poem'}
+        </button>
       </div>
 
       {mode === 'canvas' && <Sketch setup={setup} draw={draw} mouseClicked={mouseClicked} />}
       {mode === 'svg' && renderSVG()}
       {mode === 'webgl' && <Sketch setup={setup} draw={draw} />}
+
+      {showPoem && selectedMemory && (
+        <div style={{ position: 'absolute', left: 8, bottom: 8, zIndex: 6, maxWidth: isMobile ? 300 : 380, background: 'rgba(28,33,40,0.95)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '12px 14px', color: 'var(--primary-text)' }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Poetic Reflection</div>
+          <div style={{ fontStyle: 'italic', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{selectedMemory.poetic_narrative}</div>
+        </div>
+      )}
 
       {memories.length === 0 && (
         <div style={{
