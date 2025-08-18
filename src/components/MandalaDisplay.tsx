@@ -13,6 +13,9 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   const timeRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const [canvasSize, setCanvasSize] = useState(600);
+  const [mode, setMode] = useState<'canvas' | 'svg'>('canvas');
+  const p5Ref = useRef<p5Types | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -26,7 +29,14 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Small deterministic pseudo-random based on seed
+  const seededRandom = (p5: p5Types, seed: number) => {
+    p5.randomSeed(seed);
+    p5.noiseSeed(seed);
+  };
+
   const setup = (p5: p5Types, canvasParentRef: Element) => {
+    p5Ref.current = p5;
     p5.createCanvas(canvasSize, canvasSize).parent(canvasParentRef);
     p5.angleMode(p5.DEGREES);
     p5.colorMode(p5.HSB, 360, 100, 100, 1);
@@ -34,6 +44,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   };
 
   const mouseClicked = (p5: p5Types) => {
+    if (mode !== 'canvas') return;
     const mouseDist = p5.dist(p5.mouseX, p5.mouseY, p5.width / 2, p5.height / 2);
     const clickedIndex = memories.findIndex((_memory, index) => {
       const radius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
@@ -48,30 +59,27 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   };
 
   const draw = (p5: p5Types) => {
-    // Reduce animation speed on mobile for better performance
+    if (mode !== 'canvas') return; // Skip drawing when in SVG mode
+
     const animationSpeed = isMobile ? 0.01 : 0.02;
     const timeSpeed = isMobile ? 0.01 : 0.015;
     
     timeRef.current += animationSpeed;
     animationRef.current += timeSpeed;
     
-    // Simple background for mobile, gradient for desktop
     if (isMobile) {
       p5.background(0);
     } else {
-      // Create beautiful gradient background only on desktop
       p5.background(0);
       for (let i = 0; i < p5.width; i += 2) {
         for (let j = 0; j < p5.height; j += 2) {
           const dist = p5.dist(i, j, p5.width / 2, p5.height / 2);
           const maxDist = p5.width / 2;
           const normalizedDist = p5.map(dist, 0, maxDist, 0, 1);
-          
           const hue = 220 + normalizedDist * 40;
           const sat = 30 + normalizedDist * 20;
           const bright = 5 + normalizedDist * 15;
           const alpha = p5.map(normalizedDist, 0, 1, 0.3, 0.1);
-          
           p5.set(i, j, p5.color(hue, sat, bright, alpha));
         }
       }
@@ -80,12 +88,10 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     
     p5.translate(p5.width / 2, p5.height / 2);
 
-    // Draw ambient particles only on desktop
     if (!isMobile) {
       drawAmbientParticles(p5);
     }
     
-    // Draw mandala layers
     memories.forEach((memory, index) => {
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
       const mouseDist = p5.dist(p5.mouseX, p5.mouseY, p5.width / 2, p5.height / 2);
@@ -94,7 +100,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       drawMandalaLayer(p5, memory, baseRadius, index, isHovered);
     });
 
-    // Draw central core
     drawCentralCore(p5);
   };
 
@@ -115,18 +120,12 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
 
   const drawCentralCore = (p5: p5Types) => {
     const coreSize = isMobile ? 25 : 40;
-    
-    // Inner glow
     p5.drawingContext.shadowBlur = isMobile ? 15 : 30;
     p5.drawingContext.shadowColor = p5.color(210, 60, 80);
-    
-    // Core circle
     p5.fill(210, 60, 80, 0.3);
     p5.stroke(210, 80, 90, 0.8);
     p5.strokeWeight(isMobile ? 1 : 2);
     p5.circle(0, 0, coreSize);
-    
-    // Inner pattern
     p5.stroke(210, 100, 100, 0.6);
     p5.strokeWeight(1);
     p5.noFill();
@@ -136,166 +135,161 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const y = patternRadius * p5.sin(i);
       p5.line(0, 0, x, y);
     }
-    
     p5.drawingContext.shadowBlur = 0;
   };
 
+  const applyStrokeStyle = (p5: p5Types, style?: string) => {
+    if (style === 'dotted') {
+      p5.drawingContext.setLineDash([2, 6]);
+    } else if (style === 'dashed') {
+      p5.drawingContext.setLineDash([8, 8]);
+    } else {
+      p5.drawingContext.setLineDash([]);
+    }
+  };
+
   const drawMandalaLayer = (p5: p5Types, memory: Memory, baseRadius: number, index: number, isHovered: boolean) => {
-    const color = p5.color(memory.art_instructions.color);
+    const params = memory.art_instructions || ({} as Memory['art_instructions']);
+    const color = p5.color(params.color || '#30a8f0');
+    const secondary = p5.color(params.secondary_color || '#ffffff');
     const hue = p5.hue(color);
     const sat = p5.saturation(color);
     const bright = p5.brightness(color);
-    
-    // Reduce layers on mobile for better performance
+
+    const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+    const petals = Math.max(3, Math.min(params.petals ?? 12, 60));
+    const strokeStyle = params.strokeStyle || 'solid';
+    const seed = params.seed ?? 1337 + index * 101;
+    const energy = params.energy || 'romantic';
+
+    seededRandom(p5, seed);
+
     const layers = isMobile ? 3 : 5;
-    const pulse = p5.sin(animationRef.current + index * 0.8) * (isMobile ? 0.1 : 0.15) + 1;
-    
+    const energyAmplitude = energy === 'calm' ? 0.06 : energy === 'energetic' ? 0.18 : 0.12;
+    const pulse = p5.sin(animationRef.current + index * 0.8) * (isMobile ? energyAmplitude * 0.6 : energyAmplitude) + 1;
+
     for (let layer = 0; layer < layers; layer++) {
       const layerRadius = baseRadius + layer * (isMobile ? 2 : 3);
       const layerAlpha = isHovered ? 0.9 - layer * 0.15 : 0.7 - layer * 0.1;
       const currentRadius = layerRadius * pulse;
-      
-      // Enhanced glow effect
-      if (isHovered) {
-        p5.drawingContext.shadowBlur = isMobile ? 20 - layer * 3 : 35 - layer * 5;
-        p5.drawingContext.shadowColor = p5.color(hue, sat, bright, 0.8);
-      } else {
-        p5.drawingContext.shadowBlur = isMobile ? 8 - layer * 1 : 15 - layer * 2;
-        p5.drawingContext.shadowColor = p5.color(hue, sat, bright, 0.5);
-      }
-      
+
+      p5.drawingContext.shadowBlur = isHovered ? (isMobile ? 20 - layer * 3 : 35 - layer * 5) : (isMobile ? 8 - layer * 1 : 15 - layer * 2);
+      p5.drawingContext.shadowColor = p5.color(hue, sat, bright, isHovered ? 0.8 : 0.5);
+
       p5.stroke(hue, sat, bright, layerAlpha);
       p5.strokeWeight(isHovered ? (isMobile ? 2 - layer * 0.2 : 3 - layer * 0.3) : (isMobile ? 1.5 - layer * 0.15 : 2 - layer * 0.2));
+      applyStrokeStyle(p5, strokeStyle);
       p5.noFill();
-      
-              drawComplexPattern(p5, memory.art_instructions.pattern, currentRadius, index);
+
+      drawGenerativePattern(p5, params.pattern, currentRadius, index, symmetry, petals, secondary);
     }
-    
-    // Reset shadow
+
+    // Reset style
+    p5.drawingContext.setLineDash([]);
     p5.drawingContext.shadowBlur = 0;
-    
-    // Add floating elements only on desktop
+
     if (!isMobile) {
       drawFloatingElements(p5, baseRadius, hue, sat, bright, index, isHovered);
     }
   };
 
-  const drawComplexPattern = (p5: p5Types, pattern: string, radius: number, index: number) => {
-    const rotation = timeRef.current * (isMobile ? 5 : 10) + index * 45;
+  const drawGenerativePattern = (
+    p5: p5Types,
+    pattern: string,
+    radius: number,
+    index: number,
+    symmetry: number,
+    petals: number,
+    secondary: p5Types.Color,
+  ) => {
+    const step = 360 / symmetry;
     p5.push();
-    p5.rotate(rotation);
-    
-    switch (pattern) {
-      case 'circle':
-        // Concentric circles with inner details
-        p5.circle(0, 0, radius * 2);
-        p5.circle(0, 0, radius * 1.6);
-        p5.circle(0, 0, radius * 1.2);
-        
-        // Inner flower pattern
-        for (let i = 0; i < (isMobile ? 6 : 8); i++) {
-          const angle = i * (isMobile ? 60 : 45);
-          const x = radius * 0.4 * p5.cos(angle);
-          const y = radius * 0.4 * p5.sin(angle);
-          p5.circle(x, y, radius * 0.2);
-        }
-        break;
-        
-      case 'square':
-        // Rotating squares with diamond pattern
-        p5.rect(0, 0, radius * 2, radius * 2);
-        p5.rotate(45);
-        p5.rect(0, 0, radius * 1.4, radius * 1.4);
-        p5.rotate(-90);
-        p5.rect(0, 0, radius * 0.8, radius * 0.8);
-        
-        // Corner elements
-        for (let i = 0; i < 4; i++) {
-          p5.rotate(90);
-          const x = radius * 0.8;
-          const y = 0;
-          p5.circle(x, y, radius * 0.3);
-        }
-        break;
-        
-      case 'triangle':
-        // Star pattern with triangles
-        for (let i = 0; i < 3; i++) {
-          p5.rotate(120);
-          p5.triangle(
-            0, -radius,
-            -radius * 0.7, radius * 0.7,
-            radius * 0.7, radius * 0.7
-          );
-        }
-        
-        // Inner star
-        p5.rotate(60);
-        for (let i = 0; i < 3; i++) {
-          p5.rotate(120);
-          p5.triangle(
-            0, -radius * 0.5,
-            -radius * 0.35, radius * 0.35,
-            radius * 0.35, radius * 0.35
-          );
-        }
-        break;
-        
-      case 'line':
-        // Spiral pattern with radiating lines
-        for (let i = 0; i < 360; i += (isMobile ? 12 : 8)) {
-          const spiralRadius = radius * (0.3 + (i / 360) * 0.7);
-          const x = spiralRadius * p5.cos(i);
-          const y = spiralRadius * p5.sin(i);
-          p5.line(0, 0, x, y);
-        }
-        
-        // Outer ring of dots
-        for (let i = 0; i < (isMobile ? 16 : 24); i++) {
-          const angle = i * (isMobile ? 22.5 : 15);
-          const x = radius * 0.9 * p5.cos(angle);
-          const y = radius * 0.9 * p5.sin(angle);
-          p5.circle(x, y, 3);
-        }
-        break;
-        
-      case 'arc':
-        // Flower-like pattern with arcs
-        for (let i = 0; i < (isMobile ? 8 : 12); i++) {
-          p5.rotate(isMobile ? 45 : 30);
-          p5.arc(0, 0, radius * 2, radius * 2, 0, 60);
-          p5.arc(0, 0, radius * 1.5, radius * 1.5, 30, 90);
-        }
-        
-        // Inner petals
-        for (let i = 0; i < (isMobile ? 6 : 8); i++) {
-          p5.rotate(isMobile ? 60 : 45);
-          p5.ellipse(radius * 0.3, 0, radius * 0.4, radius * 0.2);
-        }
-        break;
-        
-      default:
-        // Default flower pattern
-        for (let i = 0; i < (isMobile ? 8 : 12); i++) {
-          p5.rotate(isMobile ? 45 : 30);
-          p5.ellipse(radius * 0.6, 0, radius * 0.4, radius * 0.2);
-        }
-        p5.circle(0, 0, radius * 0.8);
+    for (let a = 0; a < 360; a += step) {
+      p5.push();
+      p5.rotate(a);
+
+      switch (pattern) {
+        case 'circle':
+          for (let i = 0; i < petals; i++) {
+            const ang = (i / petals) * 360;
+            const wobble = p5.sin(timeRef.current * 40 + i * 10 + index * 20) * (radius * 0.04);
+            const r = radius * 0.5 + wobble;
+            const x = r * p5.cos(ang);
+            const y = r * p5.sin(ang);
+            p5.ellipse(x, y, radius * 0.35, radius * 0.18);
+          }
+          p5.stroke(secondary);
+          p5.circle(0, 0, radius * 1.2);
+          break;
+
+        case 'square':
+          p5.rect(0, 0, radius * 1.4, radius * 1.4);
+          p5.rotate(45);
+          p5.rect(0, 0, radius, radius);
+          p5.stroke(secondary);
+          for (let i = 0; i < 4; i++) {
+            p5.rotate(90);
+            p5.circle(radius * 0.8, 0, radius * 0.25);
+          }
+          break;
+
+        case 'triangle':
+          for (let i = 0; i < 3; i++) {
+            p5.rotate(120);
+            p5.triangle(0, -radius, -radius * 0.7, radius * 0.7, radius * 0.7, radius * 0.7);
+          }
+          p5.rotate(60);
+          p5.stroke(secondary);
+          for (let i = 0; i < 3; i++) {
+            p5.rotate(120);
+            p5.triangle(0, -radius * 0.55, -radius * 0.35, radius * 0.35, radius * 0.35, radius * 0.35);
+          }
+          break;
+
+        case 'line':
+          for (let i = 0; i < 360; i += 12) {
+            const spiral = radius * (0.25 + (i / 360) * 0.75);
+            const x = spiral * p5.cos(i);
+            const y = spiral * p5.sin(i);
+            p5.line(0, 0, x, y);
+          }
+          p5.stroke(secondary);
+          for (let i = 0; i < petals; i++) {
+            const ang = (i / petals) * 360;
+            const x = radius * 0.9 * p5.cos(ang);
+            const y = radius * 0.9 * p5.sin(ang);
+            p5.circle(x, y, 3);
+          }
+          break;
+
+        case 'arc':
+        default:
+          for (let i = 0; i < petals; i++) {
+            p5.rotate(360 / petals);
+            p5.arc(0, 0, radius * 2, radius * 2, 0, 60);
+            p5.arc(0, 0, radius * 1.5, radius * 1.5, 30, 90);
+          }
+          p5.stroke(secondary);
+          for (let i = 0; i < Math.max(6, Math.floor(petals / 2)); i++) {
+            p5.rotate(360 / Math.max(6, Math.floor(petals / 2)));
+            p5.ellipse(radius * 0.35, 0, radius * 0.4, radius * 0.2);
+          }
+          break;
+      }
+
+      p5.pop();
     }
-    
     p5.pop();
   };
 
   const drawFloatingElements = (p5: p5Types, radius: number, hue: number, sat: number, bright: number, index: number, isHovered: boolean) => {
     const elements = isHovered ? 6 : 3;
-    
     for (let i = 0; i < elements; i++) {
       const angle = timeRef.current * 15 + index * 30 + i * (360 / elements);
       const elementRadius = radius + 15 + p5.sin(timeRef.current * 2 + i) * 5;
       const x = elementRadius * p5.cos(angle);
       const y = elementRadius * p5.sin(angle);
       const size = p5.sin(timeRef.current * 1.5 + i) * 2 + 3;
-      
       p5.fill(hue, sat, bright, 0.6);
       p5.stroke(hue, sat, bright, 0.8);
       p5.strokeWeight(1);
@@ -303,9 +297,118 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     }
   };
 
+  // SVG rendering (beta): static snapshot using symmetry/petals
+  const renderSVG = () => {
+    const size = canvasSize;
+    const center = size / 2;
+
+    // Helper seeded random (LCG) for SVG
+    const lcg = (seed: number) => {
+      let s = seed % 2147483647;
+      if (s <= 0) s += 2147483646;
+      return () => (s = (s * 48271) % 2147483647) / 2147483647;
+    };
+
+    const elements: JSX.Element[] = [];
+
+    memories.forEach((memory, index) => {
+      const params = memory.art_instructions || ({} as Memory['art_instructions']);
+      const color = params.color || '#30a8f0';
+      const secondary = params.secondary_color || '#ffffff';
+      const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+      const petals = Math.max(3, Math.min(params.petals ?? 12, 60));
+      const seed = params.seed ?? 1337 + index * 101;
+      const rnd = lcg(seed);
+      const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
+
+      const step = 360 / symmetry;
+      const groupChildren: JSX.Element[] = [];
+
+      for (let a = 0; a < 360; a += step) {
+        const rot = a;
+        const petalChildren: JSX.Element[] = [];
+        for (let i = 0; i < petals; i++) {
+          const ang = (i / petals) * 360;
+          const wobble = (Math.sin(i * 0.5) + rnd() * 0.2) * (baseRadius * 0.04);
+          const r = baseRadius * 0.5 + wobble;
+          const x = r * Math.cos((ang * Math.PI) / 180);
+          const y = r * Math.sin((ang * Math.PI) / 180);
+          petalChildren.push(
+            <ellipse key={`p-${index}-${a}-${i}`} cx={x} cy={y} rx={baseRadius * 0.35} ry={baseRadius * 0.18} fill="none" stroke={color} strokeWidth={2} />
+          );
+        }
+        petalChildren.push(
+          <circle key={`ring-${index}-${a}`} cx={0} cy={0} r={baseRadius * 1.2} fill="none" stroke={secondary} strokeWidth={1.5} />
+        );
+        groupChildren.push(
+          <g key={`g-${index}-${a}`} transform={`rotate(${rot})`}>
+            {petalChildren}
+          </g>
+        );
+      }
+
+      elements.push(
+        <g key={`layer-${index}`} transform={`translate(${center}, ${center})`}>
+          {groupChildren}
+        </g>
+      );
+    });
+
+    // central core
+    elements.push(
+      <g key="core" transform={`translate(${center}, ${center})`}>
+        <circle cx={0} cy={0} r={isMobile ? 12.5 : 20} fill="rgba(48,168,240,0.3)" stroke="rgba(48,168,240,0.8)" strokeWidth={isMobile ? 1 : 2} />
+      </g>
+    );
+
+    return (
+      <svg ref={svgRef} width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: mode === 'svg' ? 'block' : 'none' }}>
+        <rect x={0} y={0} width={size} height={size} fill="#000" />
+        {elements}
+      </svg>
+    );
+  };
+
+  const handleExportPNG = () => {
+    if (mode === 'canvas' && p5Ref.current) {
+      p5Ref.current.saveCanvas('mandala-of-us', 'png');
+    }
+  };
+
+  const handleExportSVG = () => {
+    if (mode === 'svg' && svgRef.current) {
+      const serializer = new XMLSerializer();
+      const source = serializer.serializeToString(svgRef.current);
+      const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mandala-of-us.svg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
   return (
     <div style={{ position: 'relative' }}>
-      <Sketch setup={setup} draw={draw} mouseClicked={mouseClicked} />
+      {/* Controls overlay */}
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5, display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', background: 'rgba(28,33,40,0.9)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
+          <button onClick={() => setMode('canvas')} style={{ padding: '6px 10px', background: mode === 'canvas' ? 'var(--accent-color)' : 'transparent', color: mode === 'canvas' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>Canvas</button>
+          <button onClick={() => setMode('svg')} style={{ padding: '6px 10px', background: mode === 'svg' ? 'var(--accent-color)' : 'transparent', color: mode === 'svg' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>SVG (beta)</button>
+        </div>
+        {mode === 'canvas' ? (
+          <button onClick={handleExportPNG} className="sign-out-button" style={{ position: 'static' }}>Export PNG</button>
+        ) : (
+          <button onClick={handleExportSVG} className="sign-out-button" style={{ position: 'static' }}>Export SVG</button>
+        )}
+      </div>
+
+      {mode === 'canvas' && <Sketch setup={setup} draw={draw} mouseClicked={mouseClicked} />}
+      {mode === 'svg' && renderSVG()}
+
       {memories.length === 0 && (
         <div style={{
           position: 'absolute',

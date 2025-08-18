@@ -139,7 +139,7 @@ function App() {
       
       <main className="App-main">
         <div className="left-panel">
-          <MandalaDisplay memories={memories} onMemorySelect={setSelectedMemory} />
+          <MandalaDisplay memories={memories} onMemorySelect={setSelectedMemory} selectedMemory={selectedMemory} />
         </div>
         <div className="right-panel">
           <MemoryForm onAddMemory={addMemory} isLoading={isLoading} />

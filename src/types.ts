@@ -6,5 +6,12 @@ export interface Memory {
   art_instructions: {
     color: string;
     pattern: string;
+    // New optional fields for richer, unique mandalas
+    secondary_color?: string;
+    symmetry?: number; // e.g., 4-24
+    petals?: number; // e.g., 4-36
+    energy?: 'calm' | 'romantic' | 'energetic';
+    strokeStyle?: 'solid' | 'dotted' | 'dashed';
+    seed?: number; // deterministic seed per memory
   };
 }

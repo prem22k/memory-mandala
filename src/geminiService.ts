@@ -27,25 +27,24 @@ export const getEnhancedMemory = async (description: string) => {
   `;
 
   const artPrompt = `
-    You are an expert art director and color theorist, specializing in creating stunning visual designs for mandala art.
-    A user has provided this memory: "${description}"
-    
-    Based on the emotional content, mood, and feeling of this memory, create a sophisticated color palette and pattern design.
-    
-    Provide ONLY a JSON object with these keys:
-    - "color": A beautiful, vibrant hex color that represents the dominant emotion (choose from: deep purples, rich blues, warm golds, soft pinks, emerald greens, or vibrant oranges)
-    - "pattern": A complex geometric pattern type (choose from: "circle", "square", "triangle", "line", "arc")
-    
-    Consider the emotional weight:
-    - Romantic/loving memories: soft pinks, purples, or warm golds
-    - Joyful/happy memories: vibrant oranges, yellows, or bright blues
-    - Peaceful/calm memories: soft blues, greens, or lavender
-    - Passionate/intense memories: deep reds, purples, or electric blues
-    - Nostalgic memories: warm ambers, soft oranges, or muted golds
-    
-    Example output: { "color": "#E91E63", "pattern": "circle" }
-    
-    Do not include any other text or explanation.
+    You are an expert art director and generative artist. Given this memory: "${description}", derive parameters for a unique mandala layer.
+
+    Respond ONLY with valid JSON containing these keys:
+    {
+      "color": "#RRGGBB",                // primary hex color
+      "secondary_color": "#RRGGBB",      // complementary/accent color
+      "pattern": "circle|square|triangle|line|arc", // base archetype (fallback)
+      "symmetry": 4..24,                  // number of symmetries/rotational repeats
+      "petals": 4..36,                    // number of petals/lobes for floral/arc motifs
+      "energy": "calm|romantic|energetic", // influences motion/amplitude
+      "strokeStyle": "solid|dotted|dashed", // line style
+      "seed": 1..1000000                  // deterministic seed for this memory
+    }
+
+    Notes:
+    - Choose colors to match emotion (romantic: pink/purple/gold, calm: blue/green, energetic: orange/red/electric blue)
+    - symmetry higher => more intricate; petals ties to floral look; energy drives motion amplitude
+    - seed must be a positive integer for reproducibility
   `;
 
   const poetic_narrative = await generatePrompt(poeticPrompt);
