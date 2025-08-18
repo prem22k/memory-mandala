@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type ReactElement } from 'react';
 import Sketch from 'react-p5';
 import p5Types from 'p5';
 import { type Memory } from '../types';
@@ -348,7 +348,7 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       return () => (s = (s * 48271) % 2147483647) / 2147483647;
     };
 
-    const elements: JSX.Element[] = [];
+    const elements: ReactElement[] = [];
 
     memories.forEach((memory, index) => {
       const params = memory.art_instructions || ({} as Memory['art_instructions']);
@@ -360,11 +360,11 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const rnd = lcg(seed);
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
       const step = 360 / symmetry;
-      const groupChildren: JSX.Element[] = [];
+      const groupChildren: ReactElement[] = [];
 
       for (let a = 0; a < 360; a += step) {
         const rot = a;
-        const petalChildren: JSX.Element[] = [];
+        const petalChildren: ReactElement[] = [];
         for (let i = 0; i < petals; i++) {
           const ang = (i / petals) * 360;
           const wobble = (Math.sin(i * 0.5) + rnd() * 0.2) * (baseRadius * 0.04);
@@ -415,7 +415,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   const handleExportPoster = () => {
     if (mode !== 'canvas' || !p5Ref.current) return;
     const p5 = p5Ref.current;
-    // Draw overlay on top (temporary), then export PNG
     p5.push();
     p5.resetMatrix();
     p5.noStroke();
