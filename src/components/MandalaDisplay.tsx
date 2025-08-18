@@ -6,14 +6,15 @@ import { type Memory } from '../types';
 interface MandalaDisplayProps {
   memories: Memory[];
   onMemorySelect: (memory: Memory | null) => void;
+  selectedMemory?: Memory | null;
 }
 
-const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelect }) => {
+const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelect, selectedMemory }) => {
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const [canvasSize, setCanvasSize] = useState(600);
-  const [mode, setMode] = useState<'canvas' | 'svg'>('canvas');
+  const [mode, setMode] = useState<'canvas' | 'svg' | 'webgl'>('canvas');
   const p5Ref = useRef<p5Types | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -37,10 +38,15 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
 
   const setup = (p5: p5Types, canvasParentRef: Element) => {
     p5Ref.current = p5;
-    p5.createCanvas(canvasSize, canvasSize).parent(canvasParentRef);
-    p5.angleMode(p5.DEGREES);
-    p5.colorMode(p5.HSB, 360, 100, 100, 1);
-    p5.rectMode(p5.CENTER);
+    if (mode === 'webgl') {
+      const renderer = (p5 as unknown as any).createCanvas(canvasSize, canvasSize, (p5 as any).WEBGL);
+      renderer.parent(canvasParentRef);
+    } else {
+      p5.createCanvas(canvasSize, canvasSize).parent(canvasParentRef);
+      p5.angleMode(p5.DEGREES);
+      p5.colorMode(p5.HSB, 360, 100, 100, 1);
+      p5.rectMode(p5.CENTER);
+    }
   };
 
   const mouseClicked = (p5: p5Types) => {
@@ -59,14 +65,18 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
   };
 
   const draw = (p5: p5Types) => {
-    if (mode !== 'canvas') return; // Skip drawing when in SVG mode
+    if (mode === 'svg') return; // Skip drawing when in SVG mode
 
     const animationSpeed = isMobile ? 0.01 : 0.02;
     const timeSpeed = isMobile ? 0.01 : 0.015;
-    
     timeRef.current += animationSpeed;
     animationRef.current += timeSpeed;
-    
+
+    if (mode === 'webgl') {
+      drawWebGL(p5);
+      return;
+    }
+
     if (isMobile) {
       p5.background(0);
     } else {
@@ -96,18 +106,57 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
       const mouseDist = p5.dist(p5.mouseX, p5.mouseY, p5.width / 2, p5.height / 2);
       const isHovered = mouseDist > baseRadius - 15 && mouseDist < baseRadius + 15;
-      
       drawMandalaLayer(p5, memory, baseRadius, index, isHovered);
     });
 
     drawCentralCore(p5);
   };
 
+  const drawWebGL = (p5: p5Types) => {
+    const gl = (p5 as any);
+    gl.clear(0);
+    gl.background(0);
+    gl.orbitControl?.(2, 2); // gentle orbit
+    gl.rotateX(timeRef.current * 5);
+    gl.rotateZ(timeRef.current * 3);
+
+    memories.forEach((memory, index) => {
+      const params = memory.art_instructions || ({} as Memory['art_instructions']);
+      const color = params.color || '#30a8f0';
+      const seed = params.seed ?? 1337 + index * 101;
+      const symmetry = Math.max(2, Math.min(params.symmetry ?? 12, 36));
+      const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
+
+      seededRandom(p5, seed);
+      gl.push();
+      const step = 360 / symmetry;
+      for (let a = 0; a < 360; a += step) {
+        gl.push();
+        gl.rotateZ(a);
+        gl.noFill();
+        gl.stroke(color);
+        gl.strokeWeight(1.2);
+        // 3D ring segments
+        for (let r = baseRadius * 0.6; r < baseRadius * 1.1; r += 8) {
+          gl.beginShape();
+          for (let ang = 0; ang <= 360; ang += 15) {
+            const x = r * gl.cos(ang);
+            const y = r * gl.sin(ang);
+            const z = gl.sin(timeRef.current * 40 + ang * 0.5 + r * 0.1) * 6; // gentle wave height
+            gl.vertex(x, y, z);
+          }
+          gl.endShape();
+        }
+        gl.pop();
+      }
+      gl.pop();
+    });
+  };
+
   const drawAmbientParticles = (p5: p5Types) => {
     p5.stroke(210, 40, 80, 0.4);
     p5.strokeWeight(1);
     p5.noFill();
-    
     for (let i = 0; i < 20; i++) {
       const angle = timeRef.current * 30 + i * 18;
       const radius = 200 + p5.sin(timeRef.current * 3 + i) * 20;
@@ -184,7 +233,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       drawGenerativePattern(p5, params.pattern, currentRadius, index, symmetry, petals, secondary);
     }
 
-    // Reset style
     p5.drawingContext.setLineDash([]);
     p5.drawingContext.shadowBlur = 0;
 
@@ -207,7 +255,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     for (let a = 0; a < 360; a += step) {
       p5.push();
       p5.rotate(a);
-
       switch (pattern) {
         case 'circle':
           for (let i = 0; i < petals; i++) {
@@ -221,7 +268,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
           p5.stroke(secondary);
           p5.circle(0, 0, radius * 1.2);
           break;
-
         case 'square':
           p5.rect(0, 0, radius * 1.4, radius * 1.4);
           p5.rotate(45);
@@ -232,7 +278,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
             p5.circle(radius * 0.8, 0, radius * 0.25);
           }
           break;
-
         case 'triangle':
           for (let i = 0; i < 3; i++) {
             p5.rotate(120);
@@ -245,7 +290,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
             p5.triangle(0, -radius * 0.55, -radius * 0.35, radius * 0.35, radius * 0.35, radius * 0.35);
           }
           break;
-
         case 'line':
           for (let i = 0; i < 360; i += 12) {
             const spiral = radius * (0.25 + (i / 360) * 0.75);
@@ -261,7 +305,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
             p5.circle(x, y, 3);
           }
           break;
-
         case 'arc':
         default:
           for (let i = 0; i < petals; i++) {
@@ -276,7 +319,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
           }
           break;
       }
-
       p5.pop();
     }
     p5.pop();
@@ -297,12 +339,9 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     }
   };
 
-  // SVG rendering (beta): static snapshot using symmetry/petals
   const renderSVG = () => {
     const size = canvasSize;
     const center = size / 2;
-
-    // Helper seeded random (LCG) for SVG
     const lcg = (seed: number) => {
       let s = seed % 2147483647;
       if (s <= 0) s += 2147483646;
@@ -320,7 +359,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       const seed = params.seed ?? 1337 + index * 101;
       const rnd = lcg(seed);
       const baseRadius = (isMobile ? 40 : 60) + index * (isMobile ? 25 : 35);
-
       const step = 360 / symmetry;
       const groupChildren: JSX.Element[] = [];
 
@@ -354,7 +392,6 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
       );
     });
 
-    // central core
     elements.push(
       <g key="core" transform={`translate(${center}, ${center})`}>
         <circle cx={0} cy={0} r={isMobile ? 12.5 : 20} fill="rgba(48,168,240,0.3)" stroke="rgba(48,168,240,0.8)" strokeWidth={isMobile ? 1 : 2} />
@@ -375,6 +412,37 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     }
   };
 
+  const handleExportPoster = () => {
+    if (mode !== 'canvas' || !p5Ref.current) return;
+    const p5 = p5Ref.current;
+    // Draw overlay on top (temporary), then export PNG
+    p5.push();
+    p5.resetMatrix();
+    p5.noStroke();
+    p5.fill(0, 0, 0, 0.6);
+    p5.rect(0, p5.height * 0.65, p5.width, p5.height * 0.35);
+    p5.fill(0, 0, 100, 1);
+    p5.textAlign(p5.CENTER, p5.TOP);
+    p5.textFont('Playfair Display');
+    p5.textSize(isMobile ? 16 : 20);
+    const title = extractTitle(selectedMemory?.description || '');
+    const date = extractDate(selectedMemory?.description || '');
+    const poem = selectedMemory?.poetic_narrative || '';
+    if (title) {
+      p5.text(title, p5.width / 2, p5.height * 0.68);
+    }
+    if (date) {
+      p5.textSize(isMobile ? 12 : 14);
+      p5.text(date, p5.width / 2, p5.height * 0.72);
+    }
+    p5.textSize(isMobile ? 12 : 14);
+    p5.textLeading(isMobile ? 16 : 20);
+    const poemY = p5.height * 0.76;
+    wrapAndText(p5, poem, p5.width * 0.1, poemY, p5.width * 0.8);
+    p5.pop();
+    p5.saveCanvas('mandala-of-us-poster', 'png');
+  };
+
   const handleExportSVG = () => {
     if (mode === 'svg' && svgRef.current) {
       const serializer = new XMLSerializer();
@@ -391,23 +459,57 @@ const MandalaDisplay: React.FC<MandalaDisplayProps> = ({ memories, onMemorySelec
     }
   };
 
+  const extractTitle = (desc: string) => {
+    const match = desc.match(/Title: ([^D]+?)(?=Date:|Description:)/);
+    return match ? match[1].trim() : '';
+  };
+  const extractDate = (desc: string) => {
+    const match = desc.match(/Date: ([^D]+?)(?=Description:)/);
+    return match ? match[1].trim() : '';
+  };
+
+  const wrapAndText = (p5: p5Types, text: string, x: number, y: number, maxWidth: number) => {
+    const words = text.split(' ');
+    let line = '';
+    let lineY = y;
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      if (p5.textWidth(testLine) > maxWidth && n > 0) {
+        p5.text(line, x + maxWidth / 2, lineY);
+        line = words[n] + ' ';
+        lineY += p5.textLeading();
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      p5.text(line, x + maxWidth / 2, lineY);
+    }
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       {/* Controls overlay */}
-      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5, display: 'flex', gap: 8 }}>
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', background: 'rgba(28,33,40,0.9)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
           <button onClick={() => setMode('canvas')} style={{ padding: '6px 10px', background: mode === 'canvas' ? 'var(--accent-color)' : 'transparent', color: mode === 'canvas' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>Canvas</button>
-          <button onClick={() => setMode('svg')} style={{ padding: '6px 10px', background: mode === 'svg' ? 'var(--accent-color)' : 'transparent', color: mode === 'svg' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>SVG (beta)</button>
+          <button onClick={() => setMode('svg')} style={{ padding: '6px 10px', background: mode === 'svg' ? 'var(--accent-color)' : 'transparent', color: mode === 'svg' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>SVG</button>
+          <button onClick={() => setMode('webgl')} style={{ padding: '6px 10px', background: mode === 'webgl' ? 'var(--accent-color)' : 'transparent', color: mode === 'webgl' ? '#fff' : 'var(--primary-text)', border: 'none', cursor: 'pointer' }}>WebGL</button>
         </div>
-        {mode === 'canvas' ? (
-          <button onClick={handleExportPNG} className="sign-out-button" style={{ position: 'static' }}>Export PNG</button>
-        ) : (
+        {mode === 'canvas' && (
+          <>
+            <button onClick={handleExportPNG} className="sign-out-button" style={{ position: 'static' }}>Export PNG</button>
+            <button onClick={handleExportPoster} className="sign-out-button" style={{ position: 'static' }}>Export Poster</button>
+          </>
+        )}
+        {mode === 'svg' && (
           <button onClick={handleExportSVG} className="sign-out-button" style={{ position: 'static' }}>Export SVG</button>
         )}
       </div>
 
       {mode === 'canvas' && <Sketch setup={setup} draw={draw} mouseClicked={mouseClicked} />}
       {mode === 'svg' && renderSVG()}
+      {mode === 'webgl' && <Sketch setup={setup} draw={draw} />}
 
       {memories.length === 0 && (
         <div style={{
