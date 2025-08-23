@@ -26,8 +26,8 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 
-# Gemini AI API Key
-VITE_GEMINI_API_KEY=your_gemini_api_key
+# OpenRouter API Key (for DeepSeek R1 Free)
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ### 2. Firebase Setup
@@ -38,11 +38,11 @@ VITE_GEMINI_API_KEY=your_gemini_api_key
 4. Create a Firestore database
 5. Copy your config values to the `.env` file
 
-### 3. Gemini AI Setup
+### 3. OpenRouter AI Setup
 
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create an API key
-3. Add it to your `.env` file as `VITE_GEMINI_API_KEY`
+1. Go to [OpenRouter](https://openrouter.ai/)
+2. Sign up and get your API key
+3. Add it to your `.env` file as `VITE_OPENROUTER_API_KEY`
 
 ### 4. Install & Run
 
@@ -57,7 +57,7 @@ npm run dev
 
 - [ ] Environment variables configured
 - [ ] Firebase project created and configured
-- [ ] Gemini API key obtained
+- [ ] OpenRouter API key obtained
 - [ ] App builds successfully (`npm run build`)
 - [ ] App runs locally without errors
 
@@ -102,7 +102,7 @@ npm run dev
 - **React 19** with TypeScript
 - **P5.js** for beautiful mandala visualization
 - **Firebase** for secure data storage
-- **Gemini AI** for intelligent content generation
+- **OpenRouter AI** (DeepSeek R1 Free) for intelligent content generation
 - **Responsive Design** for all devices
 
 ## 🚀 Deployment
@@ -135,7 +135,7 @@ npm run dev
 ### Common Issues:
 
 1. **Build Errors**: Check that all environment variables are set
-2. **API Errors**: Verify your Gemini API key is valid
+2. **API Errors**: Verify your OpenRouter API key is valid
 3. **Firebase Errors**: Ensure your Firebase project is properly configured
 4. **Mobile Issues**: Test on different devices and browsers
 

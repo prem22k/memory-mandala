@@ -7,7 +7,7 @@ import Login from './components/Login.tsx';
 import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { getEnhancedMemory } from './geminiService';
+import { getEnhancedMemory } from './deepseekService';
 import { type Memory } from './types';
 import './App.css';
 
@@ -30,18 +30,66 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      const q = query(collection(db, "memories"), where("uid", "==", user.uid), orderBy("createdAt"));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const memoriesData: Memory[] = [];
-        querySnapshot.forEach((doc) => {
-          memoriesData.push({ id: doc.id, ...doc.data() } as Memory);
+      console.log('Setting up Firebase listener for user:', user.uid);
+      try {
+        // First try with orderBy, if it fails, fall back to simple query
+        const q = query(collection(db, "memories"), where("uid", "==", user.uid));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const memoriesData: Memory[] = [];
+          console.log('Firebase query result - documents count:', querySnapshot.size);
+          console.log('Query metadata:', {
+            empty: querySnapshot.empty,
+            metadata: querySnapshot.metadata
+          });
+          
+          querySnapshot.forEach((doc) => {
+            try {
+              const data = doc.data();
+              console.log('Memory document:', { id: doc.id, uid: data.uid, description: data.description?.substring(0, 50) });
+              
+              // Ensure all required fields are present with fallbacks
+              const memory: Memory = {
+                id: doc.id,
+                uid: data.uid || user.uid,
+                description: data.description || '',
+                poetic_narrative: data.poetic_narrative || 'A beautiful memory to cherish forever.',
+                art_instructions: {
+                  color: data.art_instructions?.color || '#FF69B4',
+                  pattern: data.art_instructions?.pattern || 'circle',
+                  secondary_color: data.art_instructions?.secondary_color || '#FFD700',
+                  symmetry: data.art_instructions?.symmetry || 12,
+                  petals: data.art_instructions?.petals || 12,
+                  energy: data.art_instructions?.energy || 'romantic',
+                  strokeStyle: data.art_instructions?.strokeStyle || 'solid',
+                  seed: data.art_instructions?.seed || Math.floor(Math.random() * 1000000) + 1
+                }
+              };
+              
+              memoriesData.push(memory);
+            } catch (docError) {
+              console.error('Error processing document:', doc.id, docError);
+            }
+          });
+          
+          // Sort by createdAt if available, otherwise by document ID
+          memoriesData.sort((a, b) => {
+            const aDate = a.createdAt || new Date(0);
+            const bDate = b.createdAt || new Date(0);
+            return aDate.getTime() - bDate.getTime();
+          });
+          
+          console.log('Setting memories state with:', memoriesData.length, 'memories');
+          console.log('Memory IDs:', memoriesData.map(m => m.id));
+          setMemories(memoriesData);
+        }, (error) => {
+          console.error("Error fetching memories:", error);
+          setError("Failed to load memories. Please refresh the page.");
         });
-        setMemories(memoriesData);
-      }, (error) => {
-        console.error("Error fetching memories:", error);
-        setError("Failed to load memories. Please refresh the page.");
-      });
-      return () => unsubscribe();
+        return () => unsubscribe();
+      } catch (queryError) {
+        console.error("Error setting up Firebase query:", queryError);
+        setError("Failed to set up memory loading. Please refresh the page.");
+      }
     } else {
       setMemories([]);
       setSelectedMemory(null);
@@ -55,16 +103,24 @@ function App() {
     setError(null);
     
     try {
+      console.log('Calling OpenRouter API for description:', description);
       const enhancedMemory = await getEnhancedMemory(description);
-      await addDoc(collection(db, "memories"), {
+      console.log('OpenRouter API response:', enhancedMemory);
+      
+      const memoryData = {
         uid: user.uid,
         description,
         ...enhancedMemory,
         createdAt: new Date(),
-      });
-    } catch (error) {
-      console.error("Error adding memory:", error);
-      setError("Failed to add memory. Please try again.");
+      };
+      console.log('Storing memory data:', memoryData);
+      
+      const docRef = await addDoc(collection(db, "memories"), memoryData);
+      console.log('Memory stored successfully with ID:', docRef.id);
+      
+    } catch (error: any) {
+      console.error("OpenRouter API failed:", error);
+      setError("Failed to add memory. Please check your API key and try again.");
     } finally {
       setIsLoading(false);
     }
