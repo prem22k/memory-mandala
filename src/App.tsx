@@ -6,7 +6,7 @@ import MemoryList from './components/MemoryList.tsx';
 import Login from './components/Login.tsx';
 import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from 'firebase/firestore';
 import { getEnhancedMemory } from './deepseekService';
 import { type Memory } from './types';
 import './App.css';
@@ -62,7 +62,8 @@ function App() {
                   energy: data.art_instructions?.energy || 'romantic',
                   strokeStyle: data.art_instructions?.strokeStyle || 'solid',
                   seed: data.art_instructions?.seed || Math.floor(Math.random() * 1000000) + 1
-                }
+                },
+                createdAt: data.createdAt || new Date(),
               };
               
               memoriesData.push(memory);

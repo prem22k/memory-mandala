@@ -14,4 +14,5 @@ export interface Memory {
     strokeStyle?: 'solid' | 'dotted' | 'dashed';
     seed?: number; // deterministic seed per memory
   };
+  createdAt?: Date; // Added for sorting
 }
