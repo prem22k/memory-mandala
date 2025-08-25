@@ -33,14 +33,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Make it feel like a love letter or a romantic verse that would be meaningful to a couple.
     `;
 
-    const poeticResponse = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'HTTP-Referer': req.headers.origin || 'https://your-domain.vercel.app',
-        'X-Title': 'Mandala of Us',
-      },
+         const poeticResponse = await fetch(API_URL, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${API_KEY}`,
+         'HTTP-Referer': req.headers.origin || 'https://memory-mandala.vercel.app',
+         'X-Title': 'Mandala of Us',
+       },
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1:free',
         messages: [
@@ -151,14 +151,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Respond with ONLY the JSON object, no other text.
     `;
 
-    const artResponse = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'HTTP-Referer': req.headers.origin || 'https://your-domain.vercel.app',
-        'X-Title': 'Mandala of Us',
-      },
+         const artResponse = await fetch(API_URL, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${API_KEY}`,
+         'HTTP-Referer': req.headers.origin || 'https://memory-mandala.vercel.app',
+         'X-Title': 'Mandala of Us',
+       },
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1:free',
         messages: [
