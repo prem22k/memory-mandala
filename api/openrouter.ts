@@ -1,4 +1,12 @@
 export default async function handler(req: any, res: any) {
+	console.log('API handler called with method:', req.method);
+	console.log('Request headers:', req.headers);
+	console.log('Request body type:', typeof req.body);
+	console.log('Environment check - API_KEY exists:', !!process.env.OPENROUTER_API_KEY);
+
+	// Set proper headers for JSON responses
+	res.setHeader('Content-Type', 'application/json');
+
 	// Only allow POST requests
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' });
@@ -18,6 +26,8 @@ export default async function handler(req: any, res: any) {
 			return res.status(400).json({ error: 'Invalid JSON in request body' });
 		}
 
+		console.log('Parsed description:', description);
+
 		if (!description || typeof description !== 'string') {
 			return res.status(400).json({ error: 'Description is required' });
 		}
@@ -27,16 +37,27 @@ export default async function handler(req: any, res: any) {
 		
 		if (!API_KEY) {
 			console.error('OpenRouter API key not found in environment variables');
-			return res.status(500).json({ error: 'Server configuration error: missing OPENROUTER_API_KEY' });
+			return res.status(500).json({ 
+				error: 'Server configuration error: missing OPENROUTER_API_KEY',
+				details: 'Please set OPENROUTER_API_KEY in Vercel environment variables'
+			});
 		}
 
+		console.log('API key found, length:', API_KEY.length);
+
 		const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+		const referer = (req.headers && (req.headers.origin || req.headers.referer)) || 'https://memory-mandala.vercel.app';
+		
+		console.log('Using referer:', referer);
+
 		const commonHeaders = {
 			'Content-Type': 'application/json',
 			'Authorization': `Bearer ${API_KEY}`,
-			'HTTP-Referer': (req.headers && (req.headers.origin || req.headers.referer)) || 'https://memory-mandala.vercel.app',
+			'HTTP-Referer': referer,
 			'X-Title': 'Mandala of Us',
-		} as Record<string, string>;
+		};
+
+		console.log('Making first API call for poetic narrative...');
 
 		// Generate poetic narrative
 		const poeticPrompt = `
@@ -61,10 +82,16 @@ export default async function handler(req: any, res: any) {
 			}),
 		});
 
+		console.log('Poetic response status:', poeticResponse.status);
+
 		if (!poeticResponse.ok) {
 			let errorPayload: any = undefined;
 			const text = await poeticResponse.text();
-			try { errorPayload = JSON.parse(text); } catch { errorPayload = { raw: text }; }
+			try { 
+				errorPayload = JSON.parse(text); 
+			} catch { 
+				errorPayload = { raw: text }; 
+			}
 			console.error('OpenRouter API Error (poetry):', {
 				status: poeticResponse.status,
 				statusText: poeticResponse.statusText,
@@ -79,12 +106,16 @@ export default async function handler(req: any, res: any) {
 		const poeticData = await poeticResponse.json();
 		const poetic_narrative = poeticData.choices?.[0]?.message?.content || '';
 
+		console.log('Poetic narrative generated, length:', poetic_narrative.length);
+
 		// Generate art instructions
 		const artPrompt = `
 			You are an expert art director and generative artist. Given this memory: "${description}", derive parameters for a unique mandala layer.
 			CRITICAL: Analyze the specific content and choose parameters accordingly.
 			Respond with ONLY a JSON object with keys: color, secondary_color, pattern, symmetry, petals, energy, strokeStyle, seed.
 		`;
+
+		console.log('Making second API call for art instructions...');
 
 		const artResponse = await fetch(API_URL, {
 			method: 'POST',
@@ -100,10 +131,16 @@ export default async function handler(req: any, res: any) {
 			}),
 		});
 
+		console.log('Art response status:', artResponse.status);
+
 		if (!artResponse.ok) {
 			let errorPayload: any = undefined;
 			const text = await artResponse.text();
-			try { errorPayload = JSON.parse(text); } catch { errorPayload = { raw: text }; }
+			try { 
+				errorPayload = JSON.parse(text); 
+			} catch { 
+				errorPayload = { raw: text }; 
+			}
 			console.error('OpenRouter API Error (art):', {
 				status: artResponse.status,
 				statusText: artResponse.statusText,
@@ -117,13 +154,21 @@ export default async function handler(req: any, res: any) {
 
 		const artData = await artResponse.json();
 		const art_instructions_raw = artData.choices?.[0]?.message?.content || '{}';
+		
+		console.log('Art instructions raw:', art_instructions_raw);
+		
 		let art_instructions: any;
 		try {
 			art_instructions = JSON.parse(art_instructions_raw);
 		} catch (error) {
 			console.error('Failed to parse JSON from API response:', art_instructions_raw);
-			return res.status(500).json({ error: 'Invalid JSON response from API (art)', details: art_instructions_raw });
+			return res.status(500).json({ 
+				error: 'Invalid JSON response from API (art)', 
+				details: art_instructions_raw 
+			});
 		}
+
+		console.log('Successfully generated both poetic narrative and art instructions');
 
 		// Return the enhanced memory data
 		return res.status(200).json({
@@ -132,7 +177,15 @@ export default async function handler(req: any, res: any) {
 		});
 
 	} catch (error: any) {
-		console.error('Server error:', { message: error?.message, stack: error?.stack });
-		return res.status(500).json({ error: 'Internal server error', message: error?.message });
+		console.error('Server error:', { 
+			message: error?.message, 
+			stack: error?.stack,
+			name: error?.name 
+		});
+		return res.status(500).json({ 
+			error: 'Internal server error', 
+			message: error?.message,
+			type: error?.name
+		});
 	}
 }
