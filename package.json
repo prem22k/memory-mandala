@@ -29,11 +29,5 @@
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2"
   },
-  "vercel": {
-    "functions": {
-      "api/openrouter.ts": {
-        "runtime": "nodejs18.x"
-      }
-    }
-  }
+
 }
