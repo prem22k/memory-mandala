@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Test</title>
+  </head>
+  <body>
+    <h1>OpenRouter API Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+      async function testAPI() {
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = "Testing API...";
+
+        try {
+          const response = await fetch("/api/openrouter", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              description: "walking in the park together",
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            resultDiv.innerHTML = `
+                        <h3>Success!</h3>
+                        <p><strong>Poetic Narrative:</strong> ${
+                          data.poetic_narrative
+                        }</p>
+                        <p><strong>Art Instructions:</strong></p>
+                        <pre>${JSON.stringify(
+                          data.art_instructions,
+                          null,
+                          2
+                        )}</pre>
+                    `;
+          } else {
+            resultDiv.innerHTML = `
+                        <h3>Error: ${response.status}</h3>
+                        <p>${data.error}</p>
+                    `;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <h3>Network Error</h3>
+                    <p>${error.message}</p>
+                `;
+        }
+      }
+    </script>
+  </body>
+</html>

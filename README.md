@@ -26,8 +26,9 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 
-# OpenRouter API Key (for DeepSeek R1 Free)
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key
+# OpenRouter API Key (for DeepSeek R1 Free) - Server-side only
+# This should be set in Vercel environment variables, not in .env
+# OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ### 2. Firebase Setup
@@ -42,7 +43,7 @@ VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 
 1. Go to [OpenRouter](https://openrouter.ai/)
 2. Sign up and get your API key
-3. Add it to your `.env` file as `VITE_OPENROUTER_API_KEY`
+3. Add it to your Vercel environment variables as `OPENROUTER_API_KEY` (no `VITE_` prefix)
 
 ### 4. Install & Run
 

@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/openrouter.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "OPENROUTER_API_KEY": "@openrouter_api_key"
+  }
+}
