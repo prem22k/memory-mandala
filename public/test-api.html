@@ -7,10 +7,41 @@
   </head>
   <body>
     <h1>OpenRouter API Test</h1>
-    <button onclick="testAPI()">Test API</button>
+    <button onclick="testSimpleAPI()">Test Simple API</button>
+    <button onclick="testAPI()">Test OpenRouter API</button>
     <div id="result"></div>
 
     <script>
+      async function testSimpleAPI() {
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = "Testing simple API...";
+
+        try {
+          const response = await fetch("/api/test", {
+            method: "GET",
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            resultDiv.innerHTML = `
+              <h3>Simple API Success!</h3>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+          } else {
+            resultDiv.innerHTML = `
+              <h3>Simple API Error: ${response.status}</h3>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `
+            <h3>Simple API Network Error</h3>
+            <p>${error.message}</p>
+          `;
+        }
+      }
+
       async function testAPI() {
         const resultDiv = document.getElementById("result");
         resultDiv.innerHTML = "Testing API...";
