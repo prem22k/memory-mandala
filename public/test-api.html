@@ -45,6 +45,7 @@
             resultDiv.innerHTML = `
                         <h3>Error: ${response.status}</h3>
                         <p>${data.error}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
                     `;
           }
         } catch (error) {
