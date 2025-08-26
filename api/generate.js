@@ -1,11 +1,11 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
   try {
-    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const body = req.body || {};
     const prompt = body.prompt;
     const isJson = body.isJson;
 
@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const referer = (req.headers && (req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : 'https://example.com'))) || 'https://example.com';
+    const referer = (req.headers?.origin || (req.headers?.host ? `https://${req.headers.host}` : 'https://example.com'));
 
     const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -48,9 +48,9 @@ module.exports = async (req, res) => {
     }
 
     const data = await upstream.json();
-    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '';
+    const content = data?.choices?.[0]?.message?.content ?? '';
     res.status(200).json({ content });
   } catch (error) {
-    res.status(500).json({ error: 'Server error', details: (error && error.message) || String(error) });
+    res.status(500).json({ error: 'Server error', details: error?.message || String(error) });
   }
-};
+}
