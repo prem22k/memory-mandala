@@ -6,7 +6,7 @@ import MemoryList from './components/MemoryList.tsx';
 import Login from './components/Login.tsx';
 import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { getEnhancedMemory } from './deepseekService';
 import { type Memory } from './types';
 import './App.css';
@@ -48,6 +48,25 @@ function App() {
               console.log('Memory document:', { id: doc.id, uid: data.uid, description: data.description?.substring(0, 50) });
               
               // Ensure all required fields are present with fallbacks
+              // Convert Firebase Timestamp to Date if needed
+              let createdAt: Date;
+              if (data.createdAt) {
+                // Check if it's a Firebase Timestamp
+                if (data.createdAt instanceof Timestamp) {
+                  createdAt = data.createdAt.toDate();
+                } else if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
+                  // Handle case where it might be a Timestamp-like object
+                  createdAt = data.createdAt.toDate();
+                } else if (data.createdAt instanceof Date) {
+                  createdAt = data.createdAt;
+                } else {
+                  // Fallback for other formats
+                  createdAt = new Date(data.createdAt);
+                }
+              } else {
+                createdAt = new Date();
+              }
+              
               const memory: Memory = {
                 id: doc.id,
                 uid: data.uid || user.uid,
@@ -63,7 +82,7 @@ function App() {
                   strokeStyle: data.art_instructions?.strokeStyle || 'solid',
                   seed: data.art_instructions?.seed || Math.floor(Math.random() * 1000000) + 1
                 },
-                createdAt: data.createdAt || new Date(),
+                createdAt: createdAt,
               };
               
               memoriesData.push(memory);
@@ -74,9 +93,23 @@ function App() {
           
           // Sort by createdAt if available, otherwise by document ID
           memoriesData.sort((a, b) => {
-            const aDate = a.createdAt || new Date(0);
-            const bDate = b.createdAt || new Date(0);
-            return aDate.getTime() - bDate.getTime();
+            try {
+              // Ensure we have valid Date objects
+              const aDate = (a.createdAt && a.createdAt instanceof Date) ? a.createdAt : new Date(0);
+              const bDate = (b.createdAt && b.createdAt instanceof Date) ? b.createdAt : new Date(0);
+              
+              // Additional safety check to ensure getTime() is available
+              if (typeof aDate.getTime !== 'function' || typeof bDate.getTime !== 'function') {
+                console.warn('Invalid date objects detected in sort, falling back to ID comparison');
+                return a.id.localeCompare(b.id);
+              }
+              
+              return aDate.getTime() - bDate.getTime();
+            } catch (sortError) {
+              console.error('Error sorting memories:', sortError);
+              // Fallback to sorting by ID if date sorting fails
+              return a.id.localeCompare(b.id);
+            }
           });
           
           console.log('Setting memories state with:', memoriesData.length, 'memories');
