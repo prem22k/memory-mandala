@@ -1,158 +1,92 @@
-# The Mandala of Us - A Celestial Garden of Memories
+# Memory Mandala
 
-A beautiful, AI-enhanced web application that creates a living digital mandala representing your relationship's shared memories. Each memory becomes a unique layer in a growing, interactive mandala with AI-generated poetry and artistic patterns.
+A web application that visualizes shared memories as an interactive, growing mandala. Each memory is enhanced with AI-generated poetry and artistic patterns, creating a unique visual representation of the relationship.
 
-## ✨ Features
+## Architecture
 
-- **Interactive 3D Mandala**: Beautiful, animated mandala that grows with each memory
-- **AI-Generated Poetry**: Each memory gets a romantic, heartfelt poem
-- **Sophisticated Art Patterns**: Unique geometric patterns and colors for each memory
-- **Mobile Responsive**: Optimized for both desktop and mobile devices
-- **Real-time Sync**: Memories are saved and synced across sessions
-- **Beautiful UI**: "The Celestial Garden" design with elegant dark theme
+- **Frontend**: React 19, Vite, TypeScript, P5.js (for visualization)
+- **Backend**: Firebase (Auth, Firestore), Vercel Serverless Functions
+- **AI**: OpenRouter API (DeepSeek R1 Distill Llama 70b) for poetry and art direction
 
-## 🚀 Quick Setup for Sharing
+## Features
 
-### 1. Environment Variables Setup
+- **Interactive Mandala**: P5.js-based visualization supporting Canvas, SVG, and WebGL modes.
+- **AI Enhancement**: Memories are processed to generate poetic narratives and specific art parameters (color, pattern, symmetry).
+- **Real-time Sync**: Firebase Firestore integration for real-time updates across devices.
+- **Responsive Design**: Mobile-first approach with optimized touch interactions.
 
-Create a `.env` file in the root directory with your API keys:
+## Prerequisites
 
-```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+- Node.js (v18+ recommended)
+- Firebase Project
+- OpenRouter API Key
 
-# OpenRouter API Key (for DeepSeek R1 Free) - Server-side only
-# This should be set in Vercel environment variables, not in .env
-# OPENROUTER_API_KEY=your_openrouter_api_key
-```
+## Setup
 
-### 2. Firebase Setup
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd memory-mandala
+   ```
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project
-3. Enable Authentication (Email/Password)
-4. Create a Firestore database
-5. Copy your config values to the `.env` file
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### 3. OpenRouter AI Setup
+3. **Environment Configuration**
 
-1. Go to [OpenRouter](https://openrouter.ai/)
-2. Sign up and get your API key
-3. Add it to your Vercel environment variables as `OPENROUTER_API_KEY` (no `VITE_` prefix)
+   Create a `.env` file in the root directory for frontend configuration:
 
-### 4. Install & Run
+   ```env
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+   For the backend (Vercel Functions), the `OPENROUTER_API_KEY` is required. In a local environment using `vercel dev`, you can set this in a `.env.local` file or pull it from Vercel.
+
+4. **Firebase Setup**
+   - Create a project in the [Firebase Console](https://console.firebase.google.com/).
+   - Enable **Authentication** (Email/Password provider).
+   - Create a **Firestore Database** and set appropriate security rules.
+
+## Development
+
+### Running Locally
+
+To run the full application (Frontend + API) locally, use Vercel CLI:
 
 ```bash
-npm install
-npm run dev
+npm i -g vercel
+vercel dev
 ```
 
-## 🎯 Pre-Sharing Checklist
+This serves the frontend at `http://localhost:3000` and the API functions at `http://localhost:3000/api/...`.
 
-### ✅ Technical Setup
+> **Note**: Running `npm run dev` only starts the Vite frontend server (default port 5173). API calls will fail unless you have a backend running on port 3000 or configure a proxy.
 
-- [ ] Environment variables configured
-- [ ] Firebase project created and configured
-- [ ] OpenRouter API key obtained
-- [ ] App builds successfully (`npm run build`)
-- [ ] App runs locally without errors
+### Building
 
-### ✅ Functionality Test
+```bash
+npm run build
+```
 
-- [ ] User registration/login works
-- [ ] Adding memories works
-- [ ] AI generates poetic narratives
-- [ ] Mandala displays correctly
-- [ ] Memory details show properly
-- [ ] Mobile responsiveness works
-- [ ] Error handling works
+## Deployment
 
-### ✅ User Experience
+The project is configured for deployment on Vercel.
 
-- [ ] Beautiful loading states
-- [ ] Smooth animations
-- [ ] Intuitive navigation
-- [ ] Clear error messages
-- [ ] Responsive design on all devices
+1. Push code to a Git repository.
+2. Import the project in Vercel.
+3. Configure the Environment Variables (both `VITE_` variables and `OPENROUTER_API_KEY`).
+4. Deploy.
 
-## 🌟 How to Use
+## Project Structure
 
-1. **Sign Up/Login**: Create an account or sign in
-2. **Add Memories**: Fill out the form with title, date, and description
-3. **Watch the Mandala Grow**: Each memory becomes a new layer
-4. **Interact**: Click on mandala layers or memory cards to view details
-5. **Enjoy the Poetry**: Each memory gets a beautiful AI-generated poem
-
-## 🎨 The Experience
-
-### For Your Girlfriend:
-
-- **Personal Touch**: Each memory is transformed into beautiful art
-- **Emotional Connection**: AI-generated poetry captures the essence of your moments
-- **Growing Artwork**: The mandala becomes more complex and beautiful over time
-- **Interactive**: Click to explore and relive memories
-- **Mobile Friendly**: Works perfectly on phones and tablets
-
-### Technical Highlights:
-
-- **React 19** with TypeScript
-- **P5.js** for beautiful mandala visualization
-- **Firebase** for secure data storage
-- **OpenRouter AI** (DeepSeek R1 Free) for intelligent content generation
-- **Responsive Design** for all devices
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy!
-
-### Netlify
-
-1. Push your code to GitHub
-2. Connect your repository to Netlify
-3. Add environment variables in Netlify dashboard
-4. Deploy!
-
-## 💝 Perfect Gift Features
-
-- **Romantic**: Designed specifically for couples
-- **Personal**: Each memory is unique and meaningful
-- **Beautiful**: Stunning visual design and animations
-- **Interactive**: Engaging and fun to use
-- **Growing**: The gift that keeps growing with your relationship
-- **Accessible**: Works on any device, anywhere
-
-## 🔧 Troubleshooting
-
-### Common Issues:
-
-1. **Build Errors**: Check that all environment variables are set
-2. **API Errors**: Verify your OpenRouter API key is valid
-3. **Firebase Errors**: Ensure your Firebase project is properly configured
-4. **Mobile Issues**: Test on different devices and browsers
-
-### Support:
-
-- Check the browser console for error messages
-- Verify all API keys are correct
-- Ensure Firebase rules allow read/write access
-
-## 🎉 Ready to Share!
-
-Once you've completed the checklist above, your girlfriend will have access to:
-
-- A beautiful, interactive mandala of your shared memories
-- AI-generated poetry for each special moment
-- A growing, living piece of digital art
-- A romantic, personalized experience
-
-This is truly a unique and meaningful gift that will grow more beautiful with every memory you add together! ✨
+- `api/`: Serverless functions for AI generation.
+- `src/components/`: React components (MandalaDisplay, MemoryForm, etc.).
+- `src/deepseekService.ts`: Service for interacting with the backend API.
+- `src/firebaseConfig.ts`: Firebase initialization.
