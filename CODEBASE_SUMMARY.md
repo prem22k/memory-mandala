@@ -1,6 +1,6 @@
 # Project Overview
 
-**The Mandala of Us** is a romantic, AI-enhanced web application that transforms shared memories into an interactive, growing mandala visualization. Each memory submitted by users is enhanced with AI-generated poetry and unique geometric art patterns, creating a beautiful "celestial garden" of memories. The app features a dark, elegant UI with animated P5.js mandala visualizations, real-time Firebase synchronization, and mobile-responsive design. Users can add memories with titles and dates, view poetic reflections, and interact with their mandala through Canvas, SVG, or WebGL rendering modes.
+**Memory Mandala** is a web application that visualizes shared memories as an interactive, growing mandala. Each memory is enhanced with AI-generated poetry and artistic patterns (color, symmetry, shape) via the OpenRouter API (DeepSeek R1). The application is built with React 19, Vite, and TypeScript, utilizing P5.js for visualization (Canvas, SVG, WebGL) and Firebase for real-time data synchronization and authentication.
 
 ---
 
