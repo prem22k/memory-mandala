@@ -9,13 +9,8 @@
 ```
 memory-mandala/
 ├── api/
-│   ├── generate.js           # Vercel serverless function for OpenRouter AI API
-│   ├── hello.ts              # Test API endpoint
-│   ├── openrouter.ts         # Alternative OpenRouter implementation
-│   ├── simple.js             # Simplified API handler
-│   └── test.ts               # API testing endpoint
+│   └── generate.js           # Vercel serverless function for OpenRouter AI API
 ├── public/
-│   └── test-api.html         # API testing interface
 ├── src/
 │   ├── components/
 │   │   ├── Login.tsx         # Firebase authentication UI
@@ -53,10 +48,10 @@ npm install
 
 **Run development server:**
 ```bash
-npm run dev
+vercel dev
 ```
-- Dev server runs on **default Vite port 5173** (or next available port)
-- Uses hot module replacement (HMR) for instant updates
+- Runs both Frontend (port 3000) and Backend API functions
+- **Note:** `npm run dev` only starts the frontend and will cause API errors
 
 **Build for production:**
 ```bash
