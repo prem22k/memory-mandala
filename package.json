@@ -1,7 +1,9 @@
 {
-  "name": "mandala-of-us",
+  "name": "memory-mandala",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "A generative art visualization of shared memories using React, P5.js, and AI.",
+  "author": "Prem Sai Kota <prem22k>",
   "type": "module",
   "scripts": {
     "dev": "vite",
